@@ -1,0 +1,1418 @@
+{
+  "name": "Handle Sec Invoice Refund",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -260
+      ],
+      "id": "d9bbd882-b265-4e5c-bafd-0241378dbeb4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get stdout from previous node\nconst output = $json[\"stdout\"] || \"\";\n\nfunction extractSection(text, marker) {\n  const start = `${marker} START`;\n  const end   = `${marker} END`;\n  const regex = new RegExp(`${start}[\\\\s\\\\S]*?${end}`, 'm');\n  const match = text.match(regex);\n  if (!match) return [];\n\n  // Extract inner lines (between markers)\n  const inner = match[0]\n    .replace(start, \"\")\n    .replace(end, \"\")\n    .trim();\n\n  return inner\n    .split(\"\\n\")\n    .map(s => s.trim())\n    .filter(Boolean);\n}\n\nreturn [\n  {\n    e0000145: extractSection(output, \"E0000145\"),\n    e0000147: extractSection(output, \"E0000147\"),\n    e000002:  extractSection(output, \"E000002\"),\n    unknown:  extractSection(output, \"Unknown\"),\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -260
+      ],
+      "id": "367c5c2e-deff-48be-a5f1-0f7e8d55d07b",
+      "name": "Extract cases"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.e0000145,\n  script_name: 'refund_workflow/fetch_refund_logs',\n  service_name: 'ejar3-external'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        -260
+      ],
+      "id": "d7a81e56-71be-4ba2-a5c0-63e1ae3342d4",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4220,
+        -240
+      ],
+      "name": "Get sec invoices from Azm",
+      "id": "d4a65aee-2c1f-48cd-92cd-89a1b01bf5bb",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -40,
+        -260
+      ],
+      "name": "Fetch refund external logs",
+      "id": "60260369-46a1-496d-8068-f70f7ba1ec63",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get stdout from previous node\nconst output = $json[\"stdout\"] || \"\";\n\nfunction extractSection(text, marker) {\n  const start = `${marker} START`;\n  const end   = `${marker} END`;\n  const regex = new RegExp(`${start}[\\\\s\\\\S]*?${end}`, 'm');\n  const match = text.match(regex);\n  if (!match) return [];\n\n  // Extract inner lines (between markers)\n  const inner = match[0]\n    .replace(start, \"\")\n    .replace(end, \"\")\n    .trim();\n\n  return inner\n    .split(\"\\n\")\n    .map(s => s.trim())\n    .filter(Boolean);\n}\n\nreturn [\n  {\n    draft_invoice_numbers: extractSection(output, \"DRAFT_INVOICES\"),\n    approved_invoice_numbers: extractSection(output, \"APPROVED_INVOICES\"),\n    closed_invoice_numbers:  extractSection(output, \"CLOSED_INVOICES\"),\n    refunded_invoice_numbers:  extractSection(output, \"REFUNDED_INVOICES\"),\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4640,
+        -240
+      ],
+      "id": "3b9ca591-0d33-4742-8fac-9becf0a5bca6",
+      "name": "Extract cases(invoice status)"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.draft_invoice_numbers,\n  script_name: 'refund_workflow/approve_sec_invoice_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6060,
+        -1500
+      ],
+      "id": "5ad25292-a13b-4c4b-8e33-c72b7bf621de",
+      "name": "Prepare: Approve sec invoices"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        6360,
+        -1500
+      ],
+      "name": "Execute: approve invoices",
+      "id": "9040ec4c-9b6c-47f9-8472-81ce6e921064",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get stdout from previous node\nconst output = $json[\"stdout\"] || \"\";\n\nfunction extractSection(text, marker) {\n  const start = `${marker} START`;\n  const end   = `${marker} END`;\n  const regex = new RegExp(`${start}[\\\\s\\\\S]*?${end}`, 'm');\n  const match = text.match(regex);\n  if (!match) return [];\n\n  // Extract inner lines (between markers)\n  const inner = match[0]\n    .replace(start, \"\")\n    .replace(end, \"\")\n    .trim();\n\n  return inner\n    .split(\"\\n\")\n    .map(s => s.trim())\n    .filter(Boolean);\n}\n\nreturn [\n  {\n    approved_invoice_numbers: extractSection(output, \"APPROVED_INVOICES\"),\n    undone_cases: extractSection(output, \"UNDONE_INVOICES\"),\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6700,
+        -1500
+      ],
+      "id": "d2371da9-7b75-4457-82af-04df909c055a",
+      "name": "Extract cases1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.approved_invoice_numbers,\n  script_name: 'refund_workflow/reserve_sec_invoice_amount',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7340,
+        -1500
+      ],
+      "id": "6c6444be-43de-4a86-81ee-1b709556f0e2",
+      "name": "Prepare: reserve sec invoices"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        7660,
+        -1500
+      ],
+      "name": "Execute: reserve invoice amount",
+      "id": "c4f24632-4b59-42c1-a15e-542268bf3e12",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get stdout from previous node\nconst output = $json[\"stdout\"] || \"\";\n\nfunction extractSection(text, marker) {\n  const start = `${marker} START`;\n  const end   = `${marker} END`;\n  const regex = new RegExp(`${start}[\\\\s\\\\S]*?${end}`, 'm');\n  const match = text.match(regex);\n  if (!match) return [];\n\n  // Extract inner lines (between markers)\n  const inner = match[0]\n    .replace(start, \"\")\n    .replace(end, \"\")\n    .trim();\n\n  return inner\n    .split(\"\\n\")\n    .map(s => s.trim())\n    .filter(Boolean);\n}\n\nreturn [\n  {\n    reserved_invoice_numbers: extractSection(output, \"RESERVED_CASES\"),\n    undone_cases: extractSection(output, \"UNDONE_CASES\"),\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8000,
+        -1500
+      ],
+      "id": "7a31b6cd-c93c-48a1-877f-bacee2bc11c3",
+      "name": "Extract cases2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.reserved_invoice_numbers,\n  script_name: 'refund_workflow/pay_reserved_invoice_amount',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8640,
+        -1500
+      ],
+      "id": "bfd93da2-fdc9-4c2e-80cb-ccff8ee76125",
+      "name": "Prepare: pay reserved amount"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        8980,
+        -1500
+      ],
+      "name": "Execute: pay reserved amount",
+      "id": "b70edf10-741e-41be-ad42-f403b2824f4f",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get stdout from previous node\nconst output = $json[\"stdout\"] || \"\";\n\nfunction extractSection(text, marker) {\n  const start = `${marker} START`;\n  const end   = `${marker} END`;\n  const regex = new RegExp(`${start}[\\\\s\\\\S]*?${end}`, 'm');\n  const match = text.match(regex);\n  if (!match) return [];\n\n  // Extract inner lines (between markers)\n  const inner = match[0]\n    .replace(start, \"\")\n    .replace(end, \"\")\n    .trim();\n\n  return inner\n    .split(\"\\n\")\n    .map(s => s.trim())\n    .filter(Boolean);\n}\n\nreturn [\n  {\n    closed_invoice_numbers: extractSection(output, \"CLOSED_CASES\"),\n    undone_cases: extractSection(output, \"UNDONE_CASES\"),\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9320,
+        -1500
+      ],
+      "id": "b428faf5-c219-44f1-94bf-856e2bd100a2",
+      "name": "Extract cases3"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.closed_invoice_numbers,\n  script_name: 'refund_workflow/get_contract_id_from_azm_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10000,
+        -1500
+      ],
+      "id": "33f1ae4c-391a-4f0b-b30b-278c70a3e66e",
+      "name": "Prepare: fetch Azm Contract IDs"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        10340,
+        -1500
+      ],
+      "name": "Execute: fetch Azm contract IDs",
+      "id": "a62c5461-ae98-4ca7-851e-e61e2d093348",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.reserved_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    },
+                    "id": "77942e45-cf0b-415e-b18e-9bd77f4ac49c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reserved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "180b0ba3-4a47-412e-a7e1-5206f632cb83",
+                    "leftValue": "={{ $json.undone_cases }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Undone"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        8320,
+        -1500
+      ],
+      "id": "42c9d658-a1be-4dbc-8ed6-220cf6fc21e3",
+      "name": "Reserved vs undone cases"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.closed_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    },
+                    "id": "d32b32e6-30c3-4c2a-bf4a-d7b66d90a7d0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Closed invoices"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1e1ed04a-61b6-4037-80ba-592b6a87281f",
+                    "leftValue": "={{ $json.undone_cases }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Undone invoices"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        9660,
+        -1500
+      ],
+      "id": "efc09bba-fd88-4af2-bc61-018bde45b513",
+      "name": "Closed vs Undone cases"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.approved_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    },
+                    "id": "77942e45-cf0b-415e-b18e-9bd77f4ac49c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "180b0ba3-4a47-412e-a7e1-5206f632cb83",
+                    "leftValue": "={{ $json.undone_cases }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Undone"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        7020,
+        -1500
+      ],
+      "id": "e5debdbe-7076-4db6-994a-6bf10ea4e942",
+      "name": "Approved vs Undone cases"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.draft_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "730172fe-69ac-4612-80e6-72b717768dd0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Draft"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cf33b46c-9255-4c2f-b56c-4caa3f2089fa",
+                    "leftValue": "={{ $json.approved_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "df96c690-afe6-401d-a0ae-b0c4d6eccbda",
+                    "leftValue": "={{ $json.closed_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Closed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "af04a4b4-5dd9-4dd7-b7d3-43532e136e11",
+                    "leftValue": "={{ $json.refunded_invoice_numbers }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Refunded"
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        5080,
+        -260
+      ],
+      "id": "2f85a82a-2c05-4c9b-89cf-889243eebb64",
+      "name": "Draft vs Approved vs Closed vs Refunded",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  draft_invoice_numbers: $input.first().json.draft_invoice_numbers,\n  approved_invoice_numbers: $input.first().json.approved_invoice_numbers,\n  closed_invoice_numbers: $input.first().json.closed_invoice_numbers,\n  refunded_invoice_numbers: $input.first().json.refunded_invoice_numbers,\n  undone_cases: []\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6060,
+        -880
+      ],
+      "id": "2e27b067-0161-4d67-aaff-b3c9f40f2ed2",
+      "name": "Refine input for next node"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (typeVersion: 2)\n\n// 1) Pick the text to parse (prefer .stdout from previous Execute Command)\nconst text = $input.first().json.stdout\n\n// 2) Find the JSON between the markers: result START ... result END\n// Use non-greedy capture and allow any whitespace\nconst re = /result START([\\s\\S]*?)result END/gi;\nconst matches = [...text.matchAll(re)];\n\nif (!matches.length) {\n  throw new Error(\"Could not find 'result START'...'result END' block in input.\");\n}\n\n// If multiple blocks exist, take the last one\nconst rawJson = matches[matches.length - 1][1].trim();\n\n// 3) Parse JSON safely\nlet arr;\ntry {\n  arr = JSON.parse(rawJson);\n} catch (e) {\n  throw new Error(`Failed to parse JSON between markers: ${e.message}\\nSnippet: ${rawJson.slice(0, 200)}...`);\n}\n\n// 4) Normalize to array\nif (!Array.isArray(arr)) {\n  arr = [arr];\n}\n\n// 5) Return one n8n item per entry\nreturn arr.map((row, i) => ({\n  json: {\n    ...row\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10660,
+        -1500
+      ],
+      "id": "b13f4b75-acc2-4f85-9cd7-e5b0d3ec3f9b",
+      "name": "Extract parties info"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (Node v2)\n\n// Assume input JSON is an array of objects like your example\nconst data = $input.all();\n\nconsole.log(data)\n\n// Collect contract_ids\nconst contractIds = data.map(item => item.json.contract_id);\n\nconst singleQuoted = contractIds.map(id => `'${id}'`);\n\n// Return as one item with array\nreturn { contract_ids: singleQuoted };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10980,
+        -1500
+      ],
+      "id": "fcfc5ca9-d5c6-447d-8b6b-86f287690688",
+      "name": "Extract contract ids"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.contract_ids,\n  script_name: 'refund_workflow/refund_with_damage_evaluation',\n  service_name: 'ejar3-security-deposit-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11280,
+        -1500
+      ],
+      "id": "69c95e93-16c1-4124-b992-c8fbd7440959",
+      "name": "Prepare: input to refund sec deposit"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        11600,
+        -1500
+      ],
+      "name": "Execute: refund sec deposit",
+      "id": "a1f28101-1f72-4f0b-aa6d-482461ca57a2",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.e0000145 }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    },
+                    "id": "730172fe-69ac-4612-80e6-72b717768dd0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Invoice must be closed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cf33b46c-9255-4c2f-b56c-4caa3f2089fa",
+                    "leftValue": "={{ $json.e0000147 }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Beneficiaries must be related"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "df96c690-afe6-401d-a0ae-b0c4d6eccbda",
+                    "leftValue": "={{ $json.e000002 }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "array",
+                      "operation": "lengthGt",
+                      "rightType": "number"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Internal error(500)"
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        -260
+      ],
+      "id": "6d9716f9-a91e-4fe6-a4a4-de3df99162c0",
+      "name": "Based on Azm error codes"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.e0000145,\n  script_name: 'refund_workflow/get_sec_invoice_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        -840
+      ],
+      "id": "c9273633-b1ae-446b-b334-35289e92cee7",
+      "name": "Case: invoice must be closed"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        -260
+      ],
+      "name": "Execute: fetch Azm contract info",
+      "id": "aafb1c74-c31f-469a-a614-09bb0d757c03",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.e0000147,\n  script_name: 'refund_workflow/get_contract_id_from_azm_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        -260
+      ],
+      "id": "ae32db1c-aabf-437d-b307-76e98a5c1434",
+      "name": "Prepare: fetch Azm Contract info"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (typeVersion: 2)\n\n// 1) Pick the text to parse (prefer .stdout from previous Execute Command)\nconst text = $input.first().json.stdout\n\n// 2) Find the JSON between the markers: result START ... result END\n// Use non-greedy capture and allow any whitespace\nconst re = /result START([\\s\\S]*?)result END/gi;\nconst matches = [...text.matchAll(re)];\n\nif (!matches.length) {\n  throw new Error(\"Could not find 'result START'...'result END' block in input.\");\n}\n\n// If multiple blocks exist, take the last one\nconst rawJson = matches[matches.length - 1][1].trim();\n\n// 3) Parse JSON safely\nlet arr;\ntry {\n  arr = JSON.parse(rawJson);\n} catch (e) {\n  throw new Error(`Failed to parse JSON between markers: ${e.message}\\nSnippet: ${rawJson.slice(0, 200)}...`);\n}\n\n// 4) Normalize to array\nif (!Array.isArray(arr)) {\n  arr = [arr];\n}\n\n// 5) Return one n8n item per entry\nreturn arr.map((row, i) => ({\n  json: {\n    ...row\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        -260
+      ],
+      "id": "6dea6c37-9a47-4563-951c-bf922bd55659",
+      "name": "Extract output json"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get only the JSON payloads from input\nconst input = $input.all().map(item => item.json);\n\n// Convert the array into string\nlet jsonString = JSON.stringify(input, null, 2);\n\n// Replace double quotes with single quotes\njsonString = jsonString.replace(/\"/g, \"'\");\n\n// Remove the starting \"[\" and ending \"]\"\nif (jsonString.startsWith(\"[\")) {\n  jsonString = jsonString.slice(1);\n}\nif (jsonString.endsWith(\"]\")) {\n  jsonString = jsonString.slice(0, -1);\n}\n\n// Trim any leading/trailing whitespace\njsonString = jsonString.trim();\n\n// Return result\nreturn [{\n    singleQuoteJson: jsonString\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        -260
+      ],
+      "id": "f82bb7c6-b2ce-467b-a1b6-fc5cac5a2505",
+      "name": "Reformat the input JSON"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "o2iCPG1NWFQklfv8",
+          "mode": "list",
+          "cachedResultName": "Execute Gitlab pipeline"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2740,
+        -260
+      ],
+      "name": "Execute: rectify beneficiaries info",
+      "id": "2824b5d0-7c7b-445a-9e8c-0bb42efad522",
+      "alwaysOutputData": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.singleQuoteJson,\n  script_name: 'refund_workflow/rectify_form_parties_ids',\n  service_name: 'ejar3-security-deposit-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        -260
+      ],
+      "id": "cad8581a-35bd-4ff8-8016-a2f149330f06",
+      "name": "Prepare: rectify beneficiaries info"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $('Based on Azm error codes').first().json.e0000147,\n  script_name: 'refund_workflow/get_sec_invoice_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        -260
+      ],
+      "id": "0becd98b-6ff0-45ee-a17e-e5ce9d4b74a4",
+      "name": "Case: beneficiaries must be related"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  input_params: $input.first().json.e000002,\n  script_name: 'refund_workflow/get_sec_invoice_using_invoice_no',\n  service_name: 'ejar3-core-sidekiq'\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        320
+      ],
+      "id": "e1ed62fa-da19-4c9e-b815-03b9f8f25cad",
+      "name": "Case: 500 error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract cases": {
+      "main": [
+        [
+          {
+            "node": "Based on Azm error codes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Fetch refund external logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get sec invoices from Azm": {
+      "main": [
+        [
+          {
+            "node": "Extract cases(invoice status)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch refund external logs": {
+      "main": [
+        [
+          {
+            "node": "Extract cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract cases(invoice status)": {
+      "main": [
+        [
+          {
+            "node": "Draft vs Approved vs Closed vs Refunded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Approve sec invoices": {
+      "main": [
+        [
+          {
+            "node": "Execute: approve invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: approve invoices": {
+      "main": [
+        [
+          {
+            "node": "Extract cases1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract cases1": {
+      "main": [
+        [
+          {
+            "node": "Approved vs Undone cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: reserve sec invoices": {
+      "main": [
+        [
+          {
+            "node": "Execute: reserve invoice amount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: reserve invoice amount": {
+      "main": [
+        [
+          {
+            "node": "Extract cases2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract cases2": {
+      "main": [
+        [
+          {
+            "node": "Reserved vs undone cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: pay reserved amount": {
+      "main": [
+        [
+          {
+            "node": "Execute: pay reserved amount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: pay reserved amount": {
+      "main": [
+        [
+          {
+            "node": "Extract cases3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract cases3": {
+      "main": [
+        [
+          {
+            "node": "Closed vs Undone cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: fetch Azm Contract IDs": {
+      "main": [
+        [
+          {
+            "node": "Execute: fetch Azm contract IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserved vs undone cases": {
+      "main": [
+        [
+          {
+            "node": "Prepare: pay reserved amount",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Closed vs Undone cases": {
+      "main": [
+        [
+          {
+            "node": "Prepare: fetch Azm Contract IDs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Approved vs Undone cases": {
+      "main": [
+        [
+          {
+            "node": "Prepare: reserve sec invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft vs Approved vs Closed vs Refunded": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Approve sec invoices",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refine input for next node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Closed vs Undone cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refine input for next node": {
+      "main": [
+        [
+          {
+            "node": "Approved vs Undone cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: fetch Azm contract IDs": {
+      "main": [
+        [
+          {
+            "node": "Extract parties info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract parties info": {
+      "main": [
+        [
+          {
+            "node": "Extract contract ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract contract ids": {
+      "main": [
+        [
+          {
+            "node": "Prepare: input to refund sec deposit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: input to refund sec deposit": {
+      "main": [
+        [
+          {
+            "node": "Execute: refund sec deposit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Based on Azm error codes": {
+      "main": [
+        [
+          {
+            "node": "Case: invoice must be closed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare: fetch Azm Contract info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Case: 500 error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case: invoice must be closed": {
+      "main": [
+        [
+          {
+            "node": "Get sec invoices from Azm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: fetch Azm Contract info": {
+      "main": [
+        [
+          {
+            "node": "Execute: fetch Azm contract info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: fetch Azm contract info": {
+      "main": [
+        [
+          {
+            "node": "Extract output json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract output json": {
+      "main": [
+        [
+          {
+            "node": "Reformat the input JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformat the input JSON": {
+      "main": [
+        [
+          {
+            "node": "Prepare: rectify beneficiaries info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: rectify beneficiaries info": {
+      "main": [
+        [
+          {
+            "node": "Execute: rectify beneficiaries info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: rectify beneficiaries info": {
+      "main": [
+        [
+          {
+            "node": "Case: beneficiaries must be related",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case: beneficiaries must be related": {
+      "main": [
+        [
+          {
+            "node": "Get sec invoices from Azm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case: 500 error": {
+      "main": [
+        [
+          {
+            "node": "Get sec invoices from Azm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "edd4fa62-0848-4a2a-8563-5d611cdfa9dc",
+  "meta": {
+    "instanceId": "ee8b7f570b7f381372c48054eaac25a5c491167d410d6f27908b12bd1c1315e1"
+  },
+  "id": "cTTHhTjnlTnFduK1",
+  "tags": []
+}
