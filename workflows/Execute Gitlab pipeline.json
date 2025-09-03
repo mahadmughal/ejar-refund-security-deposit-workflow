@@ -1,0 +1,180 @@
+{
+  "name": "Execute Gitlab pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -340,
+        -80
+      ],
+      "id": "09e2ebc3-9a26-4475-95c4-fc37cd8f93fc",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "command": "=ruby /Users/mahadasif/Desktop/wareef-scripts/update_script.rb \"n8n/{{ $json.script_name }}\" \"input_params = [{{ $json.input_params }}]\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        20,
+        -80
+      ],
+      "id": "ed923d28-e25b-4a84-84cb-5047f52659eb",
+      "name": "Update input - approve invoice",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5854ea7c-1482-4fc5-8ca2-5d612128a2ff",
+              "leftValue": "={{ $json.stdout }}",
+              "rightValue": "Pipeline execution passed with pipeline_id",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        -80
+      ],
+      "id": "13560558-f037-4dfd-955f-4b130c102130",
+      "name": "Pipeline pass/fail"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "=cd /Users/mahadasif/Desktop/gitlab_automation_tool &&\nsource gitlab_automation_env/bin/activate &&\nnode pipeline_automation.js -t \"ES_7251\" -s \"n8n/{{ $('When Executed by Another Workflow').item.json.script_name }}\" -e \"{{ $('When Executed by Another Workflow').item.json.service_name }}\" -b \"production\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -80
+      ],
+      "id": "72e6bfd7-2c22-4b06-8c1d-e7d208985f12",
+      "name": "Execute pipeline",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data from previous node\nconst inputData = $input.all()[0].json;\nconst stdout = inputData.stdout || '';\n\n// Get the last 50 characters from stdout\nconst lastChars = stdout.slice(-200);\n\n// Extract pipeline_id from the JSON pattern\nconst pattern = /Pipeline execution passed with pipeline_id:\\s*(\\d+)/i;\nconst match = lastChars.match(pattern);\n\n// Return just the pipeline_id\nconst pipelineId = match && match[1] ? match[1] : null;\n\nreturn {pipeline_id: pipelineId};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        -80
+      ],
+      "id": "ccdd0dca-ee9a-48cc-9e7b-82f4606af8b1",
+      "name": "Fetch pipeline via gitlab API"
+    },
+    {
+      "parameters": {
+        "command": "=cd /Users/mahadasif/Desktop/gitlab_automation_tool &&\npython3 pipeline_fetcher.py --pipeline-id {{ $json.pipeline_id }} --output-only"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        -80
+      ],
+      "id": "705b538e-076e-49c1-b44a-ea965207765d",
+      "name": "Fetch pipeline output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Update input - approve invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update input - approve invoice": {
+      "main": [
+        [
+          {
+            "node": "Execute pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline pass/fail": {
+      "main": [
+        [
+          {
+            "node": "Fetch pipeline via gitlab API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute pipeline": {
+      "main": [
+        [
+          {
+            "node": "Pipeline pass/fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch pipeline via gitlab API": {
+      "main": [
+        [
+          {
+            "node": "Fetch pipeline output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "40fee417-b5a7-4e67-9538-4dbdfdd79c4d",
+  "meta": {
+    "instanceId": "ee8b7f570b7f381372c48054eaac25a5c491167d410d6f27908b12bd1c1315e1"
+  },
+  "id": "o2iCPG1NWFQklfv8",
+  "tags": []
+}
