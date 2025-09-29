@@ -11,7 +11,9 @@ This repository contains the workflow for processing **security deposit refunds*
 - **`scripts/` folder**  
   Contains all the Ruby scripts required for the workflow.  
 - **`refund_security_deposit_workflow.json`**  
-  Defines the workflow logic and execution steps.
+  Main workflow file to refund the security deposit.
+- **`Execute gitlab pipeline.json`**  
+  Sub workflow file to execute gitlab pipeline. This file is used as sub-workflow in main workflow.
 
 ### Usage
 To ensure the workflow triggers correctly:
