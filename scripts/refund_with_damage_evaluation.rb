@@ -21,7 +21,7 @@ namespace :custom_tasks do
 
       if form.nil?
         puts "[MIMO] No form found for contract ID: #{contract_id}"
-        undone_cases.push([form.security_deposit_invoice_number, "No form found for contract ID: #{contract_id}"])
+        undone_cases.push(["No form found for contract ID: #{contract_id} OR contract_number: #{contract_number}"])
         next
       end
 
