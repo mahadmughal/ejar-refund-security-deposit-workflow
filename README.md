@@ -17,6 +17,7 @@ This repository contains the workflow for processing **security deposit refunds*
 
 ### Usage
 To ensure the workflow triggers correctly:
-1. Setup the github repo located at https://github.com/mahadmughal/gitlab_automation_tool as well. This repo should be setup locally and this repo is responsible to execute sub-workflow(Execute gitlab pipeline). Make sure that valid gitlab_access_token is set in the environment variables in .env file.
-2. Verify that the paths to the script files are properly configured in the **Code** and **Command** nodes.  
-3. Import both the workflows in n8n and then execute the main workflow(refund_security_deposit_workflow.json) 
+1. Setup the github repo located at https://github.com/mahadmughal/gitlab_automation_tool as well. This repo should be setup locally and this repo is responsible to execute sub-workflow(Execute gitlab pipeline). Make sure that valid environment variables are set in .env file.
+2. Import both the workflow json files in n8n.
+2. Verify that the paths to the script files are properly configured in the **Code** and **Command** nodes in both workflows. 
+3. Execute the main workflow(refund_security_deposit_workflow.json) that will trigger sub-workflow(Execute gitlab pipeline).
